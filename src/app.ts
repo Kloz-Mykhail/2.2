@@ -7,10 +7,25 @@ async function getId(output?: (ip: string) => void): Promise<string> {
   return data.ip;
 }
 
+function get(
+  field: string,
+  from: string,
+  output?: (name: string) => void
+): Promise<string> {
+  return new Promise((resp) => {
+    fetch(from)
+      .then((res) => res.json())
+      .then((result) => {
+        if (output) output(result[field]);
+        return resp(result[field]);
+      });
+  });
+}
+
 async function getAsync(
   field: string,
   url: string,
-  output?: (field: string) => void
+  output?: (data: string) => void
 ): Promise<string> {
   const resp = await fetch(url);
   const data = await resp.json();
@@ -42,21 +57,6 @@ async function asyncGetRandomNames(
   return array;
 }
 
-function get(
-  field: string,
-  from: string,
-  output?: (name: string) => void
-): Promise<string> {
-  return new Promise((resp) => {
-    fetch(from)
-      .then((res) => res.json())
-      .then((result) => {
-        if (output) output(result[field]);
-        return resp(result[field]);
-      });
-  });
-}
-
 function getFemaleUser() {
   get('gender', 'https://random-data-api.com/api/users/random_user').then(
     (gender) => {
@@ -76,11 +76,7 @@ async function asyncGetFemaleUser() {
 }
 getId((ip) => console.log(ip));
 getField('name', 3);
-asyncGetRandomNames(3, (arr) =>
-  arr.forEach((el) => {
-    console.log(el);
-  })
-);
+asyncGetRandomNames(3, (arr) => arr.forEach((el) => console.log(el)));
 Promise.all([
   get('name', 'https://random-data-api.com/api/name/random_name'),
   get('name', 'https://random-data-api.com/api/name/random_name'),
