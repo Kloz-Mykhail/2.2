@@ -25,7 +25,7 @@ Vue.component('task', {
         </div>
     </div>  
 </div>
-`,
+`
 });
 
 const vue = new Vue({
@@ -34,7 +34,7 @@ const vue = new Vue({
     new_task: {
       text: '',
       editable: false,
-      checked: false,
+      checked: false
     },
     tasks: [],
     login: '',
@@ -42,12 +42,12 @@ const vue = new Vue({
     backendLanguage: 'JS',
     apiURL: 'http://localhost:3005/api/',
     apiVersion: 'v1',
-    step: '',
+    step: ''
   },
   computed: {
     backendSuffix() {
       return this.backendLanguage === 'PHP' ? '.php' : '';
-    },
+    }
   },
   methods: {
     getTasks() {
@@ -59,7 +59,7 @@ const vue = new Vue({
         }?${new URLSearchParams(qs)}`,
         {
           credentials: 'include',
-          method: this.apiVersion === 'v1' ? 'GET' : 'POST',
+          method: this.apiVersion === 'v1' ? 'GET' : 'POST'
         }
       )
         .then((res) => res.json())
@@ -91,8 +91,8 @@ const vue = new Vue({
           body: request,
           credentials: 'include',
           headers: {
-            'Content-Type': 'application/json',
-          },
+            'Content-Type': 'application/json'
+          }
         }
       )
         .then((res) => res.json())
@@ -120,8 +120,8 @@ const vue = new Vue({
             body: request,
             credentials: 'include',
             headers: {
-              'Content-Type': 'application/json',
-            },
+              'Content-Type': 'application/json'
+            }
           }
         )
           .then((res) => res.json())
@@ -141,7 +141,7 @@ const vue = new Vue({
       const request = JSON.stringify({
         text: this.tasks[index].text,
         id,
-        checked: this.tasks[index].checked,
+        checked: this.tasks[index].checked
       });
       const route = this.apiVersion === 'v1' ? '/items' : '/router';
       const qs = { action: this.apiVersion === 'v1' ? '' : 'editItem' };
@@ -154,8 +154,8 @@ const vue = new Vue({
           body: request,
           credentials: 'include',
           headers: {
-            'Content-Type': 'application/json',
-          },
+            'Content-Type': 'application/json'
+          }
         }
       )
         .then((res) => res.json())
@@ -192,7 +192,7 @@ const vue = new Vue({
       const qs = { action: this.apiVersion === 'v1' ? '' : 'logout' };
       fetch(this.apiURL + this.apiVersion + route, {
         method: this.apiVersion === 'v1' ? 'POST' : 'POST',
-        credentials: 'include',
+        credentials: 'include'
       })
         .then((res) => res.json())
         .then((response) => {
@@ -215,9 +215,9 @@ const vue = new Vue({
             method: this.apiVersion === 'v1' ? 'POST' : 'POST',
             credentials: 'include',
             headers: {
-              'Content-Type': 'application/json',
+              'Content-Type': 'application/json'
             },
-            body: params,
+            body: params
           }
         )
           .then((res) => res.json())
@@ -249,8 +249,8 @@ const vue = new Vue({
             method: this.apiVersion === 'v1' ? 'POST' : 'POST',
             body: params,
             headers: {
-              'Content-Type': 'application/json',
-            },
+              'Content-Type': 'application/json'
+            }
           }
         )
           .then((res) => res.json())
@@ -264,6 +264,6 @@ const vue = new Vue({
             }
           });
       }
-    },
-  },
+    }
+  }
 });

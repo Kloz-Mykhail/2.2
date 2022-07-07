@@ -1,113 +1,131 @@
 import express from 'express';
 import fs from 'fs';
 import path from 'path';
-import { Item, Items } from './types';
+
+import { Item, User, Users, LoginData } from './types';
 
 const router = express.Router();
 
 const pathDB: string = path.join(__dirname, '..', 'DBv1.JSON');
-const pathDBId: string = path.join(__dirname, '..', 'DBv1Id.txt');
 
 router.get('/api/v1/items', (req, res) => {
-  if (fs.existsSync(pathDB)) {
-    fs.readFile(pathDB, (error, data) => {
-      if (error) throw error;
-
-      res.end(data.toString());
-    });
+  console.log(req.session.user);
+  if (req.session.user) {
+    res.json(req.session.user.items);
   } else {
-    res.json({ items: [] });
+    res.json({ error: 'forbidden' });
   }
 });
 
 router.post('/api/v1/items', (req, res) => {
   const { text }: { text: string } = req.body;
-  let id = 0;
-
-  if (fs.existsSync(pathDBId)) id = Number(fs.readFileSync(pathDBId));
-
-  if (fs.existsSync(pathDB)) {
-    id++;
-    fs.writeFile(pathDBId, id.toString(), (err) => console.error(err));
-    fs.readFile(pathDB, (error, data) => {
-      if (error) throw error;
-
-      const strData: Items = JSON.parse(data.toString());
-
-      strData.items.push({ id, text, checked: false });
-
-      fs.writeFile(pathDB, JSON.stringify(strData), (err) => {
-        if (err) throw err;
-        res.end(JSON.stringify({ id }));
-      });
-    });
-  } else {
-    const newObj: Items = { items: [{ id, text, checked: false }] };
-
-    fs.writeFile(pathDBId, '0', (error) => console.error(error));
-
-    fs.writeFile(pathDB, JSON.stringify(newObj), (err) => {
-      if (err) console.error(err);
-      res.json({ id });
-    });
-  }
+  const id: number = performance.now();
+  req.session.user.items.push({ id, text, checked: false });
+  res.json({ id });
 });
+
 router.put('/api/v1/items', (req, res) => {
   const item: Item = req.body;
-
-  if (fs.existsSync(pathDB)) {
-    fs.readFile(pathDB, (error, data) => {
-      if (error) throw error;
-
-      const strData: Items = JSON.parse(data.toString());
-
-      strData.items = strData.items.map((currentItem) => {
-        if (currentItem.id !== item.id) {
-          return currentItem;
-        }
+  if (req.session.user.items.some((itm: Item) => itm.id === item.id)) {
+    req.session.user.items = req.session.user.items.map((curentItem) => {
+      if (curentItem.id === item.id) {
         return item;
-      });
-
-      fs.writeFile(pathDB, JSON.stringify(strData), (err) => {
-        if (err) throw err;
-        console.log(strData);
-        res.json({ ok: true });
-      });
+      }
+      return curentItem;
     });
   } else {
-    const newObj: Items = {
-      items: [item]
-    };
-
-    fs.writeFile(pathDBId, '0', (error) => console.error(error));
-
-    fs.writeFile(pathDB, JSON.stringify(newObj), (err) => {
-      if (err) throw err;
-      console.log(newObj);
-      res.json({ ok: true });
-    });
+    req.session.user.items.push(item);
   }
+  res.json({ ok: true });
 });
 
 router.delete('/api/v1/items', (req, res) => {
   const itemId: number = req.body.id;
+  req.session.user.items = req.session.user.items.filter(
+    (currentItem) => currentItem.id !== itemId
+  );
+  res.json({ ok: true });
+});
 
-  if (fs.existsSync(pathDB)) {
-    fs.readFile(pathDB, (error, data) => {
-      if (error) throw error;
+router.post('/api/v1/login', (req, res) => {
+  const data: { login: string; pass: string } = req.body;
+  if (req.session.user) {
+    console.log('Session:', req.session.user);
+    res.json({ ok: true });
+  } else if (fs.existsSync(pathDB)) {
+    fs.readFile(pathDB, (err, dataDB) => {
+      if (err) throw err;
 
-      const strData: Items = JSON.parse(data.toString());
+      const dataBase: Users = JSON.parse(dataDB.toString());
 
-      strData.items = strData.items.filter(
-        (currentItem) => currentItem.id !== itemId
+      const currentUser: User | undefined = dataBase.users.find(
+        (user: User) => user.login === data.login && user.pass === data.pass
       );
+      const isLoginCurrent: boolean = currentUser !== undefined;
 
-      fs.writeFile(pathDB, JSON.stringify(strData), (err) => {
-        if (err) throw err;
+      if (isLoginCurrent) {
+        req.session.user = currentUser as User;
         res.json({ ok: true });
-      });
+      } else {
+        res.json({ error: 'not found' });
+      }
     });
   } else {
+    res.json({ error: 'not found' });
+  }
+});
+
+router.post('/api/v1/logout', (req, res) => {
+  if (req.session.user) {
+    req.session.destroy((err) => {
+      if (err) throw err;
+    });
+  }
+  res.json({ ok: true });
+});
+
+router.post('/api/v1/register', (req, res) => {
+  const data: LoginData = req.body;
+  const now = performance.now();
+  if (fs.existsSync(pathDB)) {
+    fs.readFile(pathDB, (err, dataDB) => {
+      const dataBase: Users = JSON.parse(dataDB.toString());
+      const currentUser: User | undefined = dataBase.users.find(
+        (user: User) => user.login === data.login
+      );
+
+      const isLoginCurrent: boolean = currentUser === undefined;
+      if (isLoginCurrent) {
+        req.session.user = {
+          id: now,
+          login: data.login,
+          pass: data.pass,
+          items: []
+        };
+
+        dataBase.users.push(req.session.user);
+        fs.writeFileSync(pathDB, JSON.stringify(dataBase));
+        req.session.itemsId = now;
+        res.json({ ok: true });
+      } else {
+        res.status(400).json({ error: 'Login is uncorrect' });
+      }
+    });
+  } else {
+    req.session.user = {
+      id: now,
+      login: data.login,
+      pass: data.pass,
+      items: []
+    };
+    fs.writeFile(
+      pathDB,
+      JSON.stringify({ users: [req.session.user] }),
+      (error) => {
+        if (error) console.error(error);
+        req.session.itemsId = now;
+      }
+    );
     res.json({ ok: true });
   }
 });

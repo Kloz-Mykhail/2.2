@@ -1,36 +1,47 @@
 import express from 'express';
 import cors from 'cors';
 import session from 'express-session';
+import fileStore from 'session-file-store';
 import router from './router';
+import { User } from './types';
 
+declare module 'express-session' {
+  interface Session {
+    user: User;
+    itemsId: number;
+  }
+}
+
+const FileStore = fileStore(session);
 const PORT = 3005;
-const HOST_NAME = 'localhost';
 const app = express();
 
 app.use(
   cors({
-    origin: [
-      'http://127.0.0.1:8080',
-      `http://127.0.0.1:${PORT}`
-      // 'https://web.postman.co/',
-    ],
+    origin: ['http://127.0.0.1:8080', `http://127.0.0.1:${PORT}`],
     credentials: true
   })
 );
+
 app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 
 app.use(
   session({
-    name: 'sid',
-    secret: 'random frase for make koding a sid in cookies',
+    store: new FileStore(),
+    secret: 'cookies',
     resave: false,
-    saveUninitialized: false,
-    cookie: {
-      httpOnly: true
-    }
+    saveUninitialized: false
   })
 );
 
 app.use('/static', express.static('static'));
+app.use((req, res, next) => {
+  console.log(req.cookies);
+  console.log(req.body);
+  next();
+});
+
 app.use(router);
-app.listen(PORT, HOST_NAME, () => console.log(`Port: ${PORT}`));
+
+app.listen(PORT, () => console.log(`Port: ${PORT}`));
